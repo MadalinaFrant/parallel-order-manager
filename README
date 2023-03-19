@@ -1,0 +1,39 @@
+Tema 2 APD - Frant Madalina 334CB
+
+In cadrul clasei Tema2 sunt definite si initializate atributele necesare, si 
+anume: numarul maxim de thread-uri ce pot rula in paralel pe un nivel, fisierele 
+de input si output, si cate un reader, respectiv writer, pentru acestea (se vor 
+folosi BufferedReader si BufferedWriter intrucat acestea sunt synchronised si pot 
+fi partajate in mai multe thread-uri). Pentru fiecare nivel de paralelizare este 
+definit cate un pool care va asigura faptul ca pot rula maxim threads (numarul de 
+thread-uri dat) la un moment dat. In inQueue1 si inQueue2 se retine numarul de 
+task-uri ramase de executat din fiecare pool. Intrucat se doreste asteptarea 
+finalizarii executiei tuturor task-urilor care se ocupa de produsele unei anumite 
+comenzi, se defineste un map astfel incat fiecare comanda sa aiba cate un latch. 
+Pentru acest map se foloseste tipul ConcurrentHashMap deoarece este thread-safe. 
+
+Un thread de nivelul 1, care se ocupa de o comanda, este implementat in cadrul 
+clasei OrderRunnable. Executia acestuia presupune urmatoarele operatii: citeste 
+urmatoarea linie din fisier, iar daca aceasta exista (fisierul nu a fost terminat 
+de citit), se vor realiza urmatoarele: se deschide un nou fisier pentru citirea 
+produselor de la inceputul fisierului, se seteaza latch-ul comenzii cu numarul de 
+produse cautate si se deschid acest numar de produse de task-uri in cel de-al doilea 
+pool (de nivelul 2). Cu ajutorul latch-ului se asteapta executia tuturor acestor 
+task-uri, apoi se inchide fisierul din care s-a facut citirea. Daca comanda curenta 
+contine cel putin un produs, se va scrie in fisierul de output faptul ca aceasta a 
+fost livrata. Intrucat nu se cunoaste numarul de comenzi, intial vor fi deschise 
+threads (numarul de thread-uri dat) task-uri in pool-ul de nivelul 1, apoi fiecare 
+task va mai adauga inca un task in pool daca a fost realizata citirea unei linii; 
+daca nu s-a mai putut citi nimic, atunci fisierul a fost parcurs complet, deci nu 
+mai trebuie adaugate task-uri in pool. In momentul in care numarul de task-uri 
+ramase de executat din pool devine 0, se vor opri cele doua pool-uri (daca toate 
+task-urile din primul pool au fost executate, atunci in mod implicit si toate cele 
+din al doilea pool si-au terminat executia, intrucat finalizarea unui task pentru o 
+comanda presupune finalizarea tuturor task-urilor produselor din aceasta comanda). 
+
+Un thread de nivelul 2, care se ocupa de un produs, este implementat in cadrul 
+clasei ProductRunnable. Executia acestuia presupune urmatoarele operatii: citeste 
+din fisierul de produse linie cu linie pana ajunge la una ce contine comanda 
+curenta, apoi scrie in fisierul de output faptul ca acest produs a fost livrat. 
+Pentru a marca executia task-ului, se decrementeaza valoarea latch-ului corespunzator 
+comenzii curente si a numarului de task-uri ramase in pool (inQueue2). 
